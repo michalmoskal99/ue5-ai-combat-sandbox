@@ -6,18 +6,25 @@
 #include "AIController.h"
 #include "SandboxAIController.generated.h"
 
-// "Mózg" NPC — possessuje SandboxAICharacter; w kolejnych tygodniach
-// dojdzie tu percepcja (AIPerceptionComponent) i start Behavior Tree.
+class UBehaviorTree;
 
+// "Mózg" NPC — possessuje SandboxAICharacter i uruchamia jego Behavior Tree.
+// W kolejnych tygodniach dojdzie tu percepcja (AIPerceptionComponent).
 UCLASS()
 class AICOMBATSANDBOX_API ASandboxAIController : public AAIController
 {
 	GENERATED_BODY()
 
-protected:
+public:
+	ASandboxAIController();
 
-	// Odpala się automatycznie przy przejęciu Pawna —
-	// na razie tylko log, docelowo tu wyląduje start percepcji i BT.
+protected:
+	// Wskazany w konstruktorze (ConstructorHelpers) na BT_Sandbox — na razie
+	// hardcoded reference, T3 prawdopodobnie przeniesie to do UPrimaryDataAsset.
+	UPROPERTY(EditDefaultsOnly, Category = "AI")
+	TObjectPtr<UBehaviorTree> BehaviorTreeAsset;
+
+	// Odpala się automatycznie przy przejęciu Pawna — startuje Behavior Tree
+	// i loguje possession. W kolejnych tygodniach dojdzie tu start percepcji.
 	virtual void OnPossess(APawn* InPawn) override;
-	
 };
