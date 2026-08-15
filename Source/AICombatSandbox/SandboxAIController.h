@@ -4,12 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "AIController.h"
+#include "Perception/AIPerceptionTypes.h"
+#include "TimerManager.h"
 #include "SandboxAIController.generated.h"
 
 class UBehaviorTree;
+class UAIPerceptionComponent;
+class UAISenseConfig_Sight;
+class UAISenseConfig_Hearing;
 
 // "Mózg" NPC — possessuje SandboxAICharacter i uruchamia jego Behavior Tree.
-// W kolejnych tygodniach dojdzie tu percepcja (AIPerceptionComponent).
 UCLASS()
 class AICOMBATSANDBOX_API ASandboxAIController : public AAIController
 {
@@ -19,12 +23,34 @@ public:
 	ASandboxAIController();
 
 protected:
-	// Wskazany w konstruktorze (ConstructorHelpers) na BT_Sandbox — na razie
-	// hardcoded reference, T3 prawdopodobnie przeniesie to do UPrimaryDataAsset.
+
+	//TYDZIEŃ 1
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	TObjectPtr<UBehaviorTree> BehaviorTreeAsset;
 
-	// Odpala się automatycznie przy przejęciu Pawna — startuje Behavior Tree
-	// i loguje possession. W kolejnych tygodniach dojdzie tu start percepcji.
 	virtual void OnPossess(APawn* InPawn) override;
+
+	//TYDZIEŃ 2
+	UFUNCTION()
+	void OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
+
+	// UWAGA: AAIController juz ma wlasne pole "PerceptionComponent" (uzywane wewnetrznie
+	// przez silnik, dostepne przez GetAIPerceptionComponent()). Stad inna nazwa ponizej —
+	// wlasna deklaracja "PerceptionComponent" = "shadowing", ktorego UHT nie pozwala zrobic.
+	UPROPERTY(VisibleAnywhere, Category = "AI|Perception")
+	TObjectPtr<UAIPerceptionComponent> SandboxPerceptionComponent;
+
+	UPROPERTY()
+	TObjectPtr<UAISenseConfig_Sight> SightConfig;
+
+	UPROPERTY()
+	TObjectPtr<UAISenseConfig_Hearing> HearingConfig;
+
+	UPROPERTY(EditDefaultsOnly, Category = "AI|Perception")
+	float ForgetTargetDelay = 5.0f;
+
+	FVector LastKnownLocation = FVector::ZeroVector;
+	FTimerHandle ForgetTargetTimerHandle;
+
+	void ForgetTarget();
 };
