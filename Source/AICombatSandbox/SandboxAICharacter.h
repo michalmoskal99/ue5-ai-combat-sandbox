@@ -10,6 +10,7 @@
 // Bazowa klasa NPC w sandboxie. ACharacter, nie goły APawn —
 // od razu dostajemy kolizję (Capsule) i ruch po navmeshu (CharacterMovementComponent).
 UCLASS()
+
 class AICOMBATSANDBOX_API ASandboxAICharacter : public ACharacter
 {
 	GENERATED_BODY()

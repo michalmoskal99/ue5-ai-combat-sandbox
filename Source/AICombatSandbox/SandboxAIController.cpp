@@ -3,6 +3,7 @@
 #include "SandboxAIController.h"
 #include "AICombatSandbox.h" // LogSandboxAI
 #include "UObject/ConstructorHelpers.h"
+#include "SandboxAIParams.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
@@ -20,6 +21,17 @@ ASandboxAIController::ASandboxAIController()
 	else
 	{
 		UE_LOG(LogSandboxAI, Warning, TEXT("BT_Sandbox not found at expected path — sprawdz Content/AI/BT/ albo popraw sciezke."));
+	}
+
+	// --- Tydzień 3: parametry AI jako data asset (tuning bez rekompilacji) ---
+	static ConstructorHelpers::FObjectFinder<USandboxAIParams> AIParamsObj(TEXT("/Game/AI/Data/DA_SandboxAIParams.DA_SandboxAIParams"));
+	if (AIParamsObj.Succeeded())
+	{
+		AIParams = AIParamsObj.Object;
+	}
+	else
+	{
+		UE_LOG(LogSandboxAI, Warning, TEXT("DA_SandboxAIParams not found at expected path — sprawdz Content/AI/Data/ albo popraw sciezke."));
 	}
 
 	// --- Tydzień 2: Perception ---
@@ -79,4 +91,28 @@ void ASandboxAIController::ForgetTarget()
 {
 	// TODO: GetBlackboardComponent()->ClearValue(TEXT("TargetActor"));
 	GetBlackboardComponent()->ClearValue(TEXT("TargetActor"));
+}
+
+
+void ASandboxAIController::AdvancePatrolPoint()
+{
+	// TODO: sprawdź PatrolPoints.Num() > 0 — jeśli pusta, zaloguj przez LogSandboxAI
+	// (Warning, nie Error — pusty patrol to poprawny stan, np. NPC czysto stacjonarny)
+	// i wyjdź z funkcji
+	if (PatrolPoints.Num() == 0)
+	{
+		UE_LOG(LogSandboxAI, Warning, TEXT("Patrol Ponits jest rowny 0!"));
+		return;
+	}
+
+	// TODO: pobierz aktora pod CurrentPatrolIndex, wywołaj GetBlackboardComponent()
+	// i ustaw jego lokalizację pod kluczem PatrolPoint — zastanów się, czy SetValueAsVector
+	GetBlackboardComponent()->SetValueAsVector(TEXT("PatrolPoint"), PatrolPoints[CurrentPatrolIndex]->GetActorLocation());
+	
+	// (lokalizacja) czy SetValueAsObject (sam actor) lepiej pasuje do tego, jak BT_Sandbox
+	// już korzysta z tego klucza z Tygodnia 1
+
+	// TODO: inkrementuj CurrentPatrolIndex, zawiń modulo do długości tablicy
+	// (żeby po ostatnim punkcie wrócić do pierwszego, nie wyjść poza zakres)
+	CurrentPatrolIndex = (CurrentPatrolIndex + 1) % PatrolPoints.Num();
 }

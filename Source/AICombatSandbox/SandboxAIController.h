@@ -6,12 +6,14 @@
 #include "AIController.h"
 #include "Perception/AIPerceptionTypes.h"
 #include "TimerManager.h"
+#include "SandboxAITypes.h"
 #include "SandboxAIController.generated.h"
 
 class UBehaviorTree;
 class UAIPerceptionComponent;
 class UAISenseConfig_Sight;
 class UAISenseConfig_Hearing;
+class USandboxAIParams; // forward declaration wystarczy, bo to wskaźnik
 
 // "Mózg" NPC — possessuje SandboxAICharacter i uruchamia jego Behavior Tree.
 UCLASS()
@@ -49,8 +51,28 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "AI|Perception")
 	float ForgetTargetDelay = 5.0f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "AI")
+	TObjectPtr<USandboxAIParams> AIParams; // wskaźnik do instancji danych AI, którą można ustawić w edytorze
+
+	// --- Tydzień 3: patrol ---
+	UPROPERTY(EditAnywhere, Category = "AI|Patrol")
+	TArray<AActor*> PatrolPoints;
+
+	int32 CurrentPatrolIndex = 0;
+
+	// Wybiera kolejny punkt patrolu z tablicy i wpisuje go do Blackboarda pod klucz PatrolPoint
+	void AdvancePatrolPoint();
+
 	FVector LastKnownLocation = FVector::ZeroVector;
 	FTimerHandle ForgetTargetTimerHandle;
 
 	void ForgetTarget();
 };
+
+
+
+
+
+
+
+
