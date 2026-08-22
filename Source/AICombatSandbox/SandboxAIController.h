@@ -24,6 +24,9 @@ class AICOMBATSANDBOX_API ASandboxAIController : public AAIController
 public:
 	ASandboxAIController();
 
+	// Wybiera kolejny punkt patrolu z tablicy i wpisuje go do Blackboarda pod klucz PatrolPoint
+	void AdvancePatrolPoint();
+
 protected:
 
 	//TYDZIEŃ 1
@@ -54,14 +57,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	TObjectPtr<USandboxAIParams> AIParams; // wskaźnik do instancji danych AI, którą można ustawić w edytorze
 
-	// --- Tydzień 3: patrol ---
-	UPROPERTY(EditAnywhere, Category = "AI|Patrol")
-	TArray<AActor*> PatrolPoints;
-
 	int32 CurrentPatrolIndex = 0;
 
-	// Wybiera kolejny punkt patrolu z tablicy i wpisuje go do Blackboarda pod klucz PatrolPoint
-	void AdvancePatrolPoint();
+	
 
 	FVector LastKnownLocation = FVector::ZeroVector;
 	FTimerHandle ForgetTargetTimerHandle;

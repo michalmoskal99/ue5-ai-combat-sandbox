@@ -16,6 +16,11 @@ class AICOMBATSANDBOX_API ASandboxAICharacter : public ACharacter
 	GENERATED_BODY()
 
 public:
+
+	// --- Tydzień 3: patrol ---
+	UPROPERTY(EditAnywhere, Category = "AI|Patrol")
+	TArray<AActor*> PatrolPoints;
+
 	// Sets default values for this character's properties
 	// Konstruktor — tu ustawiamy domyślne wartości (np. klasę AI Controllera),
 	// zanim jeszcze cokolwiek wydarzy się w grze.

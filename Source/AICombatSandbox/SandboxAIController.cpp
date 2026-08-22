@@ -9,6 +9,7 @@
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISenseConfig_Hearing.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "SandboxAICharacter.h"
 
 ASandboxAIController::ASandboxAIController()
 {
@@ -58,6 +59,11 @@ void ASandboxAIController::OnPossess(APawn* InPawn)
 	if (BehaviorTreeAsset)
 	{
 		RunBehaviorTree(BehaviorTreeAsset);
+		// TODO: tutaj — zaraz po RunBehaviorTree, bo dopiero teraz Blackboard
+		// na pewno istnieje. GetBlackboardComponent()->SetValueAsEnum(klucz, wartość),
+		// wartość rzutowana na uint8 tak jak RequiredState w Decoratorze
+		GetBlackboardComponent()->SetValueAsEnum(TEXT("AIState"), static_cast<uint8>(EAIState::Patrol));
+
 	}
 	else
 	{
@@ -96,23 +102,37 @@ void ASandboxAIController::ForgetTarget()
 
 void ASandboxAIController::AdvancePatrolPoint()
 {
-	// TODO: sprawdź PatrolPoints.Num() > 0 — jeśli pusta, zaloguj przez LogSandboxAI
-	// (Warning, nie Error — pusty patrol to poprawny stan, np. NPC czysto stacjonarny)
-	// i wyjdź z funkcji
-	if (PatrolPoints.Num() == 0)
+	// Kontroler nie ma bezpośredniego dostępu do PatrolPoints — te dane żyją na postaci
+	// (bo to ona fizycznie stoi w TestArena, nie kontroler, który jest tworzony dynamicznie
+	// przy possession). GetPawn() zwraca ogólny APawn*, więc trzeba go zawęzić Castem
+	// do konkretnego typu, na którym zadeklarowaliśmy PatrolPoints.
+	ASandboxAICharacter* SandboxAICharacter = Cast<ASandboxAICharacter>(GetPawn());
+	if (!SandboxAICharacter)
 	{
-		UE_LOG(LogSandboxAI, Warning, TEXT("Patrol Ponits jest rowny 0!"));
+		// Cast<> może się nie udać (np. inny typ postaci podpięty przez pomyłkę)
+		// — zabezpieczenie przed wywołaniem dalszego kodu na nullptrze (crash).
+		UE_LOG(LogSandboxAI, Warning, TEXT("AdvancePatrolPoint: GetPawn() nie jest ASandboxAICharacter!"));
 		return;
 	}
 
-	// TODO: pobierz aktora pod CurrentPatrolIndex, wywołaj GetBlackboardComponent()
-	// i ustaw jego lokalizację pod kluczem PatrolPoint — zastanów się, czy SetValueAsVector
-	GetBlackboardComponent()->SetValueAsVector(TEXT("PatrolPoint"), PatrolPoints[CurrentPatrolIndex]->GetActorLocation());
-	
-	// (lokalizacja) czy SetValueAsObject (sam actor) lepiej pasuje do tego, jak BT_Sandbox
-	// już korzysta z tego klucza z Tygodnia 1
+	// Pusty patrol to poprawny stan (np. NPC czysto stacjonarny), nie błąd —
+	// stąd Warning, nie Error, i zwykły wczesny return zamiast dalszego indeksowania.
+	if (SandboxAICharacter->PatrolPoints.Num() == 0)
+	{
+		UE_LOG(LogSandboxAI, Warning, TEXT("PatrolPoints jest puste!"));
+		return;
+	}
 
-	// TODO: inkrementuj CurrentPatrolIndex, zawiń modulo do długości tablicy
-	// (żeby po ostatnim punkcie wrócić do pierwszego, nie wyjść poza zakres)
-	CurrentPatrolIndex = (CurrentPatrolIndex + 1) % PatrolPoints.Num();
+	// Zapisujemy samą lokalizację (Vector), nie referencję do aktora (Object) —
+	// bo klucz PatrolPoint w BB_Sandbox jest zadeklarowany jako typ Vector.
+	// GetActorLocation() wyciąga pozycję z transformu wybranego punktu patrolu.
+	GetBlackboardComponent()->SetValueAsVector(
+		TEXT("PatrolPoint"),
+		SandboxAICharacter->PatrolPoints[CurrentPatrolIndex]->GetActorLocation()
+	);
+
+	// Modulo zawija indeks do długości tablicy — po ostatnim punkcie NPC wraca
+	// do pierwszego, zamiast wyjść poza zakres (co byłoby odczytem pamięci
+	// poza granicami tablicy, klasyczny crash).
+	CurrentPatrolIndex = (CurrentPatrolIndex + 1) % SandboxAICharacter->PatrolPoints.Num();
 }
