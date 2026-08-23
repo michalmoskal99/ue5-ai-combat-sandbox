@@ -10,6 +10,9 @@
 #include "Perception/AISenseConfig_Hearing.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "SandboxAICharacter.h"
+#include "Perception/AISense.h"
+#include "Perception/AISense_Sight.h"
+#include "Perception/AISense_Hearing.h"
 
 ASandboxAIController::ASandboxAIController()
 {
@@ -40,7 +43,7 @@ ASandboxAIController::ASandboxAIController()
 	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("SightConfig"));
 	HearingConfig = CreateDefaultSubobject<UAISenseConfig_Hearing>(TEXT("HearingConfig"));
 
-	SightConfig->SightRadius = 1000.0f;
+	SightConfig->SightRadius = 0.0f;//DO ZMIANY PAMIETAC!
 	SightConfig->LoseSightRadius = 1200.0f;
 	SightConfig->PeripheralVisionAngleDegrees = 90.0f;
 	SightConfig->DetectionByAffiliation.bDetectNeutrals = true;
@@ -79,12 +82,43 @@ void ASandboxAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus 
 {
 	if (Stimulus.WasSuccessfullySensed())
 	{
-		// TODO: GetBlackboardComponent()->SetValueAsObject(TEXT("TargetActor"), Actor);
-		GetBlackboardComponent()->SetValueAsObject(TEXT("TargetActor"), Actor);
-		// TODO: LastKnownLocation = Stimulus.StimulusLocation;
-		LastKnownLocation = Stimulus.StimulusLocation;
-		// TODO: GetWorldTimerManager().ClearTimer(ForgetTargetTimerHandle);
-		GetWorldTimerManager().ClearTimer(ForgetTargetTimerHandle);
+		if(Stimulus.Type == UAISense::GetSenseID(UAISense_Sight::StaticClass()))
+		{ 
+			// TODO: GetBlackboardComponent()->SetValueAsObject(TEXT("TargetActor"), Actor);
+			GetBlackboardComponent()->SetValueAsObject(TEXT("TargetActor"), Actor);
+			// TODO: LastKnownLocation = Stimulus.StimulusLocation;
+			LastKnownLocation = Stimulus.StimulusLocation;
+			// TODO: GetWorldTimerManager().ClearTimer(ForgetTargetTimerHandle);
+			GetWorldTimerManager().ClearTimer(ForgetTargetTimerHandle);
+
+
+			// TODO: SetValueAsEnum na Combat — Sight ma najwyższy priorytet,
+			// więc bez żadnego warunku (w przeciwieństwie do Hearing, tu nie
+			// sprawdzamy aktualnego stanu — wzrok zawsze wygrywa)
+			GetBlackboardComponent()->SetValueAsEnum(TEXT("AIState"), static_cast<uint8>(EAIState::Combat));
+
+			// TODO: GetWorldTimerManager().ClearTimer(SuspiciousToAlertTimerHandle)
+			// — jeśli timer z kroku 2 już leci, a NPC właśnie zobaczył gracza
+			// bezpośrednio, timer eskalujący do Alert jest już bez znaczenia
+			// (Combat jest wyżej), zostawienie go włączonego to nieszkodliwy,
+			// ale zbędny odpad
+			GetWorldTimerManager().ClearTimer(SuspiciousToAlertTimerHandle);
+		}
+		else if (Stimulus.Type == UAISense::GetSenseID(UAISense_Hearing::StaticClass()))
+		{
+			// TODO: odczytaj aktualny AIState (GetValueAsEnum, ten sam wzorzec co w Decoratorze)
+		   // TODO: jeśli aktualny stan to Idle LUB Patrol (porównanie z static_cast<uint8>(EAIState::...))
+		   //       — dopiero wtedy SetValueAsEnum na Suspicious
+		   // (celowo NIE dotykamy Suspicious/Alert/Search/Combat — hearing nie może
+		   // cofnąć NPC z czegoś pilniejszego)
+			EAIState CurrentState = static_cast<EAIState>(GetBlackboardComponent()->GetValueAsEnum(TEXT("AIState")));
+			if (CurrentState == EAIState::Idle || CurrentState == EAIState::Patrol)
+			{
+				GetBlackboardComponent()->SetValueAsEnum(TEXT("AIState"), static_cast<uint8>(EAIState::Suspicious));
+				GetWorldTimerManager().SetTimer(SuspiciousToAlertTimerHandle, this, &ASandboxAIController::EscalateToAlert, AIParams->SuspiciousToAlertDelay);
+			}
+		}
+		
 	}
 	else
 	{
@@ -135,4 +169,12 @@ void ASandboxAIController::AdvancePatrolPoint()
 	// do pierwszego, zamiast wyjść poza zakres (co byłoby odczytem pamięci
 	// poza granicami tablicy, klasyczny crash).
 	CurrentPatrolIndex = (CurrentPatrolIndex + 1) % SandboxAICharacter->PatrolPoints.Num();
+}
+
+void ASandboxAIController::EscalateToAlert()
+{
+	// TODO: SetValueAsEnum na Alert — bez warunku, bo ten timer
+	// z definicji odpala się tylko wtedy, gdy stan wciąż jest Suspicious
+	// (patrz punkt 3 — start timera dzieje się tylko przy wejściu w Suspicious)
+	GetBlackboardComponent()->SetValueAsEnum(TEXT("AIState"), static_cast<uint8>(EAIState::Alert));
 }

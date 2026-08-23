@@ -65,6 +65,10 @@ protected:
 	FTimerHandle ForgetTargetTimerHandle;
 
 	void ForgetTarget();
+
+	FTimerHandle SuspiciousToAlertTimerHandle;
+
+	void EscalateToAlert();
 };
 
 
