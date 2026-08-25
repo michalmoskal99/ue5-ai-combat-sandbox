@@ -43,16 +43,19 @@ ASandboxAIController::ASandboxAIController()
 	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("SightConfig"));
 	HearingConfig = CreateDefaultSubobject<UAISenseConfig_Hearing>(TEXT("HearingConfig"));
 
-	SightConfig->SightRadius = 0.0f;//DO ZMIANY PAMIETAC!
+	SightConfig->SightRadius = 1000.0f;
 	SightConfig->LoseSightRadius = 1200.0f;
 	SightConfig->PeripheralVisionAngleDegrees = 90.0f;
 	SightConfig->DetectionByAffiliation.bDetectNeutrals = true;
 
 	HearingConfig->HearingRange = 800.0f;
 	HearingConfig->DetectionByAffiliation.bDetectNeutrals = true;
+	HearingConfig->DetectionByAffiliation.bDetectFriendlies = true;
+	HearingConfig->DetectionByAffiliation.bDetectEnemies = true;
 
 	SandboxPerceptionComponent->ConfigureSense(*SightConfig);
 	SandboxPerceptionComponent->ConfigureSense(*HearingConfig);
+
 }
 
 void ASandboxAIController::OnPossess(APawn* InPawn)
@@ -79,7 +82,22 @@ void ASandboxAIController::OnPossess(APawn* InPawn)
 }
 
 void ASandboxAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
-{
+{	
+
+	FString SenseName = TEXT("Unknown");
+	if (Stimulus.Type == UAISense::GetSenseID(UAISense_Sight::StaticClass()))
+	{
+		SenseName = TEXT("Sight");
+	}
+	else if (Stimulus.Type == UAISense::GetSenseID(UAISense_Hearing::StaticClass()))
+	{
+		SenseName = TEXT("Hearing");
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Perception updated: Actor=%s, Sense=%s, Successful=%d"),
+		*Actor->GetName(), *SenseName, Stimulus.WasSuccessfullySensed());
+
+
 	if (Stimulus.WasSuccessfullySensed())
 	{
 		if(Stimulus.Type == UAISense::GetSenseID(UAISense_Sight::StaticClass()))
