@@ -2,12 +2,12 @@
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Sight.h"
 #include "Perception/AISense_Hearing.h"
-#include "Camera/CameraComponent.h"           // NOWE
-#include "EnhancedInputComponent.h"            // NOWE
-#include "EnhancedInputSubsystems.h"            // NOWE
-#include "InputAction.h"                        // NOWE
-#include "InputMappingContext.h"                // NOWE
-#include "InputActionValue.h"                   // NOWE
+#include "Camera/CameraComponent.h"           
+#include "EnhancedInputComponent.h"            
+#include "EnhancedInputSubsystems.h"            
+#include "InputAction.h"                        
+#include "InputMappingContext.h"                
+#include "InputActionValue.h"                   
 #include "Components/CapsuleComponent.h"
 
 ASandboxPlayerCharacter::ASandboxPlayerCharacter()

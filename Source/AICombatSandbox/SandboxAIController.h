@@ -69,6 +69,9 @@ protected:
 	FTimerHandle SuspiciousToAlertTimerHandle;
 
 	void EscalateToAlert();
+
+	virtual void Tick(float DeltaSeconds) override;
+	void DrawDebugOverlay() const;
 };
 
 
