@@ -273,4 +273,36 @@ void ASandboxAIController::DrawDebugOverlay() const
 		0.0f, // czas życia (0 = tylko jeden frame, rysujemy co Tick)
 		true // cień pod tekstem — czytelność na jasnym tle
 	);
+
+	// SandboxAIController.cpp
+	
+}
+FVector ASandboxAIController::GetThreatLocation() const
+{
+	const EAIState CurrentState = static_cast<EAIState>(GetBlackboardComponent()->GetValueAsEnum(TEXT("AIState")));
+
+	switch (CurrentState)
+	{
+	case EAIState::Combat:
+	{
+		AActor* TargetActor = Cast<AActor>(GetBlackboardComponent()->GetValueAsObject(TEXT("TargetActor")));
+		if (TargetActor != nullptr)
+		{
+			return TargetActor->GetActorLocation();
+		}
+		else
+		{
+			UE_LOG(LogSandboxAI, Warning, TEXT("GetThreatLocation wywołane w stanie Combat, ale TargetActor jest nullptr!"));
+			return FVector::ZeroVector;
+		}
+	}
+
+	case EAIState::Search:
+		return LastKnownLocation;
+
+	default:
+		UE_LOG(LogSandboxAI, Warning, TEXT("GetThreatLocation wywołane w stanie bez zagrożenia (AIState=%s)"),
+			*StaticEnum<EAIState>()->GetNameStringByValue(static_cast<int64>(CurrentState)));
+		return FVector::ZeroVector;
+	}
 }

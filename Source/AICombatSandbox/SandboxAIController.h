@@ -27,6 +27,8 @@ public:
 	// Wybiera kolejny punkt patrolu z tablicy i wpisuje go do Blackboarda pod klucz PatrolPoint
 	void AdvancePatrolPoint();
 
+	FVector GetThreatLocation() const;
+
 protected:
 
 	//TYDZIEŃ 1
