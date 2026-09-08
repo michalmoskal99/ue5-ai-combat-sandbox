@@ -306,3 +306,19 @@ FVector ASandboxAIController::GetThreatLocation() const
 		return FVector::ZeroVector;
 	}
 }
+
+AActor* ASandboxAIController::GetThreatActor() const
+{
+	const EAIState CurrentState = static_cast<EAIState>(GetBlackboardComponent()->GetValueAsEnum(TEXT("AIState")));
+
+	switch (CurrentState)
+	{
+	case EAIState::Combat:
+		return Cast<AActor>(GetBlackboardComponent()->GetValueAsObject(TEXT("TargetActor")));
+
+	default:
+		// Search i wszystkie pozostałe stany — nie ma żywego aktora, tylko
+		// zapamiętana lokacja (LastKnownLocation), więc świadomie nullptr.
+		return nullptr;
+	}
+}

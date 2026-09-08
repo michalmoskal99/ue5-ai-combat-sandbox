@@ -29,6 +29,8 @@ public:
 
 	FVector GetThreatLocation() const;
 
+	AActor* GetThreatActor() const;
+
 protected:
 
 	//TYDZIEŃ 1
