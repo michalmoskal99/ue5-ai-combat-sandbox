@@ -31,6 +31,8 @@ public:
 
 	AActor* GetThreatActor() const;
 
+	virtual ETeamAttitude::Type GetTeamAttitudeTowards(const AActor& Other) const override;
+
 protected:
 
 	//TYDZIEŃ 1
@@ -38,6 +40,8 @@ protected:
 	TObjectPtr<UBehaviorTree> BehaviorTreeAsset;
 
 	virtual void OnPossess(APawn* InPawn) override;
+
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	//TYDZIEŃ 2
 	UFUNCTION()

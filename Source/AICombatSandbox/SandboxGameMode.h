@@ -10,4 +10,6 @@ class AICOMBATSANDBOX_API ASandboxGameMode : public AGameModeBase
     GENERATED_BODY()
 public:
     ASandboxGameMode();
+
+    //virtual void PostLogin(APlayerController* NewPlayer) override;
 };

@@ -5,16 +5,17 @@
 UBTDecorator_CheckAIState::UBTDecorator_CheckAIState()
 {
     NodeName = "Check AI State"; // nazwa widoczna w edytorze BT
+
+    BlackboardKey.AddEnumFilter(this, GET_MEMBER_NAME_CHECKED(UBTDecorator_CheckAIState, BlackboardKey), StaticEnum<EAIState>());
 }
+
 
 bool UBTDecorator_CheckAIState::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
-    // TODO: wyciągnij UBlackboardComponent* z OwnerComp (metoda zwracająca
-    // komponent Blackboarda z przekazanego UBehaviorTreeComponent)
+    
     UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 
-    // TODO: jeśli wskaźnik jest null, zwróć false (zabezpieczenie, na wzór
-    // guardów które już stosujesz w AdvancePatrolPoint)
+   
     if (BlackboardComp == nullptr)
     {
         return false;
@@ -25,4 +26,20 @@ bool UBTDecorator_CheckAIState::CalculateRawConditionValue(UBehaviorTreeComponen
     // i porównaj z (uint8)RequiredState, zwróć wynik porównania
 	uint8 CurrentState = BlackboardComp->GetValueAsEnum("AIState");
     return CurrentState == (uint8)RequiredState;
+}
+
+EBlackboardNotificationResult UBTDecorator_CheckAIState::OnBlackboardKeyValueChange(const UBlackboardComponent& Blackboard, FBlackboard::FKey ChangedKeyID)
+{
+    if (BlackboardKey.GetSelectedKeyID() != ChangedKeyID)
+    {
+        return EBlackboardNotificationResult::ContinueObserving;
+    }
+
+    UBehaviorTreeComponent* BehaviorTreeComp = Cast<UBehaviorTreeComponent>(Blackboard.GetBrainComponent());
+    if (BehaviorTreeComp)
+    {
+        BehaviorTreeComp->RequestBranchEvaluation(*this);
+    }
+
+    return EBlackboardNotificationResult::ContinueObserving;
 }

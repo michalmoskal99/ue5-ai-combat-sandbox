@@ -22,14 +22,14 @@ public:
     UPROPERTY(EditDefaultsOnly, Category = "Patrol")
     float PatrolPointTolerance = 50.0f;
 
-    // TODO: dodaj pole na prędkość patrolu i osobne na prędkość w Combat,
-    // jeśli chcesz żeby NPC przyspieszał po wykryciu gracza
-
 	UPROPERTY(EditDefaultsOnly, Category = "Movement")
 	float PatrolSpeed = 300.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Movement")
 	float CombatSpeed = 600.0f;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Squad")
+    float CallForHelpRadius = 1500.0f;
 };
 
 

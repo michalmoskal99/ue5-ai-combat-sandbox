@@ -13,6 +13,7 @@
 #include "Perception/AISense.h"
 #include "Perception/AISense_Sight.h"
 #include "Perception/AISense_Hearing.h"
+#include "SandboxSquadSubsystem.h"
 
 namespace SandboxAIDebugCVars
 {
@@ -57,13 +58,21 @@ ASandboxAIController::ASandboxAIController()
 	SightConfig->PeripheralVisionAngleDegrees = 45.0f;
 	SightConfig->DetectionByAffiliation.bDetectNeutrals = true;
 
+	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
+	SightConfig->DetectionByAffiliation.bDetectFriendlies = false;
+	SightConfig->DetectionByAffiliation.bDetectNeutrals = false;
+
 	HearingConfig->HearingRange = 800.0f;
 	HearingConfig->DetectionByAffiliation.bDetectNeutrals = true;
 	HearingConfig->DetectionByAffiliation.bDetectFriendlies = true;
 	HearingConfig->DetectionByAffiliation.bDetectEnemies = true;
 
+	
+
 	SandboxPerceptionComponent->ConfigureSense(*SightConfig);
 	SandboxPerceptionComponent->ConfigureSense(*HearingConfig);
+
+	SetGenericTeamId(FGenericTeamId(1));
 
 }
 
@@ -74,9 +83,7 @@ void ASandboxAIController::OnPossess(APawn* InPawn)
 	if (BehaviorTreeAsset)
 	{
 		RunBehaviorTree(BehaviorTreeAsset);
-		// TODO: tutaj — zaraz po RunBehaviorTree, bo dopiero teraz Blackboard
-		// na pewno istnieje. GetBlackboardComponent()->SetValueAsEnum(klucz, wartość),
-		// wartość rzutowana na uint8 tak jak RequiredState w Decoratorze
+
 		GetBlackboardComponent()->SetValueAsEnum(TEXT("AIState"), static_cast<uint8>(EAIState::Patrol));
 
 	}
@@ -85,13 +92,18 @@ void ASandboxAIController::OnPossess(APawn* InPawn)
 		UE_LOG(LogSandboxAI, Warning, TEXT("BehaviorTreeAsset is null — nie uruchomiono BT."));
 	}
 
+	if (USandboxSquadSubsystem* Squad = GetWorld()->GetSubsystem<USandboxSquadSubsystem>())
+	{
+		Squad->RegisterMember(this);
+	}
+
 	SandboxPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &ASandboxAIController::OnTargetPerceptionUpdated);
 
 	UE_LOG(LogSandboxAI, Log, TEXT("ASandboxAIController::OnPossess called for pawn: %s"), *InPawn->GetName());
 }
 
 void ASandboxAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
-{	
+{
 
 	FString SenseName = TEXT("Unknown");
 	if (Stimulus.Type == UAISense::GetSenseID(UAISense_Sight::StaticClass()))
@@ -125,6 +137,10 @@ void ASandboxAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus 
 			GetWorldTimerManager().ClearTimer(SuspiciousToAlertTimerHandle);
 
 			GetBlackboardComponent()->SetValueAsEnum(TEXT("AIState"), static_cast<uint8>(EAIState::Combat));
+			if (USandboxSquadSubsystem* Squad = GetWorld()->GetSubsystem<USandboxSquadSubsystem>())
+			{
+				Squad->CallForHelp(Stimulus.StimulusLocation, AIParams->CallForHelpRadius);
+			}
 		}
 		else if (Stimulus.Type == UAISense::GetSenseID(UAISense_Hearing::StaticClass()))
 		{
@@ -150,6 +166,11 @@ void ASandboxAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus 
 			// Blackboard, nie tylko pole C++ — BTTask_MoveTo w gałęzi Search czyta
 			// LastKnownLocation stamtąd, samo pole na kontrolerze mu nie wystarczy.
 			GetBlackboardComponent()->SetValueAsVector(TEXT("LastKnownLocation"), Stimulus.StimulusLocation);
+
+			if (USandboxSquadSubsystem* Squad = GetWorld()->GetSubsystem<USandboxSquadSubsystem>())
+			{
+				Squad->BroadcastLastKnownLocation(this, Stimulus.StimulusLocation);
+			}
 
 			// ForgetTargetDelay pełni tu podwójną rolę: to zarówno grace period sprzed T2
 			// (na wypadek chwilowego okluzji-mrugnięcia), jak i teraz czas trwania Search —
@@ -218,7 +239,7 @@ void ASandboxAIController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	DrawDebugOverlay();
-		
+
 }
 void ASandboxAIController::DrawDebugOverlay() const
 {
@@ -275,7 +296,7 @@ void ASandboxAIController::DrawDebugOverlay() const
 	);
 
 	// SandboxAIController.cpp
-	
+
 }
 FVector ASandboxAIController::GetThreatLocation() const
 {
@@ -321,4 +342,29 @@ AActor* ASandboxAIController::GetThreatActor() const
 		// zapamiętana lokacja (LastKnownLocation), więc świadomie nullptr.
 		return nullptr;
 	}
+}
+
+void ASandboxAIController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (USandboxSquadSubsystem* Squad = GetWorld()->GetSubsystem<USandboxSquadSubsystem>())
+	{
+		Squad->UnregisterMember(this);
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
+ETeamAttitude::Type ASandboxAIController::GetTeamAttitudeTowards(const AActor& Other) const
+{
+	// Prostsze niż GenericTeamId: gracz nie ma własnej klasy kontrolera (domyślny
+	// APlayerController), więc zamiast porównywać ID teamów, sprawdzamy wprost typ
+	// kontrolera. Inny SandboxAIController = sojusznik, wszystko inne = wróg.
+	if (const APawn* OtherPawn = Cast<APawn>(&Other))
+	{
+		if (Cast<ASandboxAIController>(OtherPawn->GetController()))
+		{
+			return ETeamAttitude::Friendly;
+		}
+	}
+	return ETeamAttitude::Hostile;
 }
